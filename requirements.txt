@@ -1,0 +1,16 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+psycopg2-binary
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+openai-whisper
+requests
+fpdf2
+groq
+python-docx==1.1.2
+pypdf==5.1.0
+bcrypt==4.0.1

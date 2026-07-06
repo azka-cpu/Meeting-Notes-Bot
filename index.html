@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Meeting Notes Bot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F5FA;
+    --surface: #FFFFFF;
+    --rail: #FBFAFD;
+    --ink: #17171F;
+    --slate: #6B7085;
+    --line: #E4E2EE;
+    --violet: #6E56CF;
+    --violet-deep: #5A44B8;
+    --blue: #3B82F6;
+    --danger: #E5484D;
+    --radius: 14px;
+  }
+  [data-theme="dark"] {
+    --bg: #0E0E15;
+    --surface: #17171F;
+    --rail: #131319;
+    --ink: #EDEDF4;
+    --slate: #8B8FA3;
+    --line: #2A2A38;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; height:100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  ::selection { background: var(--violet); color: white; }
+
+  .topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink:0;
+  }
+  .brand { display:flex; align-items:center; gap:10px; }
+  .brand-mark {
+    width:30px; height:30px; border-radius:9px;
+    background: linear-gradient(135deg, var(--violet), var(--blue));
+    display:flex; align-items:center; justify-content:center;
+  }
+  .brand-mark svg { width:16px; height:16px; }
+  .brand-name { font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:16px; letter-spacing:-0.01em; }
+  .brand-name span { color: var(--violet); }
+  .topbar-right { display:flex; align-items:center; gap:10px; }
+  .icon-btn {
+    width:34px; height:34px; border-radius:9px; border:1px solid var(--line);
+    background: var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color: var(--ink);
+  }
+  .icon-btn:hover { border-color: var(--violet); }
+  .api-input {
+    font-family:'JetBrains Mono', monospace; font-size:11.5px;
+    padding:7px 10px; border-radius:9px; border:1px solid var(--line);
+    background: var(--surface); color: var(--slate); width:190px;
+  }
+  .status-pill {
+    font-family:'JetBrains Mono', monospace; font-size:10.5px;
+    padding:4px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:5px;
+  }
+  .status-pill.ok { background:#1FA97E22; color:#1FA97E; }
+  .status-pill.off { background:#E5484D22; color:#E5484D; }
+  .dot { width:5px; height:5px; border-radius:50%; background: currentColor; }
+  .signed-in-as { font-size:12px; color: var(--slate); margin-right:6px; }
+  .btn.small { width:auto; padding:7px 12px; font-size:12px; }
+
+  .auth-overlay { flex:1; display:flex; align-items:center; justify-content:center; }
+  .auth-card {
+    width:340px; background: var(--surface); border:1px solid var(--line);
+    border-radius: var(--radius); padding:26px;
+  }
+  .eyebrow {
+    font-family:'JetBrains Mono', monospace; font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.08em; color: var(--violet); margin-bottom:6px; display:block;
+  }
+  .auth-card h2 { font-family:'Space Grotesk', sans-serif; font-size:18px; margin:0 0 16px 0; }
+  .tabs { display:flex; gap:6px; margin-bottom:16px; }
+  .tab {
+    flex:1; text-align:center; padding:8px; border-radius:8px; font-size:13px;
+    cursor:pointer; color: var(--slate); border:1px solid transparent;
+  }
+  .tab.active { background: var(--bg); color: var(--ink); border-color: var(--line); font-weight:600; }
+  label { font-size:12.5px; color: var(--slate); display:block; margin-bottom:6px; }
+  input[type=text], input[type=email], input[type=password], textarea {
+    width:100%; padding:9px 11px; border-radius:9px;
+    border:1px solid var(--line); background: var(--bg);
+    color: var(--ink); font-family:'Inter', sans-serif; font-size:13.5px;
+    margin-bottom:13px;
+  }
+  input:focus { outline: 2px solid var(--violet); outline-offset:1px; }
+  .btn {
+    font-family:'Inter', sans-serif; font-weight:600; font-size:13.5px;
+    padding:10px 16px; border-radius:9px; border:none; cursor:pointer;
+    background: var(--violet); color:white; width:100%;
+  }
+  .btn:hover { background: var(--violet-deep); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn.secondary { background: transparent; color: var(--ink); border:1px solid var(--line); }
+  .btn.secondary:hover { border-color: var(--violet); background:transparent; }
+  .muted { color: var(--slate); font-size:12px; }
+
+  .app-shell { flex:1; display:flex; overflow:hidden; }
+
+  .rail {
+    width:290px; flex-shrink:0; background: var(--rail); border-right:1px solid var(--line);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .rail-header { padding:16px 16px 10px 16px; }
+  .rail-header h2 { font-family:'Space Grotesk', sans-serif; font-size:15px; margin:0 0 10px 0; }
+  .search-row { display:flex; gap:6px; margin-bottom:6px; }
+  .search-row input { margin-bottom:0; font-size:12.5px; padding:8px 10px; }
+  .rail-list { flex:1; overflow-y:auto; padding: 4px 10px 16px 10px; }
+  .date-group-label {
+    font-family:'JetBrains Mono', monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:.08em; color: var(--slate); padding:12px 8px 6px 8px;
+  }
+  .meeting-item {
+    display:flex; gap:10px; padding:10px 10px; border-radius:10px;
+    cursor:pointer; position:relative; overflow:hidden; margin-bottom:4px;
+  }
+  .meeting-item::before {
+    content:''; position:absolute; left:0; top:8px; bottom:8px; width:3px; border-radius:3px;
+    background: linear-gradient(180deg, var(--violet), var(--blue));
+  }
+  .meeting-item:hover { background: var(--bg); }
+  .meeting-item.active { background: var(--bg); box-shadow: inset 0 0 0 1px var(--line); }
+  .meeting-item .m-name { font-weight:600; font-size:13px; margin-bottom:2px; padding-left:6px; }
+  .meeting-item .m-date { font-family:'JetBrains Mono', monospace; font-size:10.5px; color: var(--slate); padding-left:6px; }
+  .empty-rail { padding:20px 10px; color: var(--slate); font-size:12.5px; text-align:center; }
+
+  .rail-footer { padding:12px 16px; border-top:1px solid var(--line); }
+
+  .upload-panel.hidden { display:none; }
+  .upload-tabs { display:flex; gap:6px; margin-bottom:10px; }
+  .upload-tabs .tab { font-size:12px; padding:6px; }
+  .upload-panel input[type=file] { font-size:11.5px; margin-bottom:10px; width:100%; }
+  #uploadState { font-size:11.5px; }
+
+  .content { flex:1; display:flex; overflow:hidden; }
+  .center-pane { flex:1.4; border-right:1px solid var(--line); display:flex; flex-direction:column; overflow:hidden; }
+  .right-pane { flex:1; display:flex; flex-direction:column; overflow-y:auto; padding:22px; }
+
+  .placeholder-pane {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    color: var(--slate); text-align:center; gap:12px; padding:20px;
+  }
+  .waveform { display:flex; align-items:center; gap:3px; height:20px; }
+  .waveform span {
+    width:3px; background: linear-gradient(180deg, var(--violet), var(--blue));
+    border-radius:2px; animation: wave 1.1s ease-in-out infinite;
+  }
+  @keyframes wave { 0%,100% { height:20%; } 50% { height:100%; } }
+
+  .pane-header {
+    padding:18px 22px; border-bottom:1px solid var(--line); flex-shrink:0;
+    display:flex; justify-content:space-between; align-items:flex-start;
+  }
+  .pane-title { font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:17px; }
+  .pane-date { font-family:'JetBrains Mono', monospace; font-size:11.5px; color: var(--slate); margin-top:4px; }
+
+  .center-tabs { display:flex; gap:4px; padding:0 22px; border-bottom:1px solid var(--line); flex-shrink:0; }
+  .center-tab {
+    padding:12px 6px; font-size:13px; color: var(--slate); cursor:pointer;
+    border-bottom:2px solid transparent; margin-right:16px; font-weight:500;
+  }
+  .center-tab.active { color: var(--ink); border-bottom-color: var(--violet); font-weight:600; }
+  .center-body { flex:1; overflow-y:auto; padding:20px 22px; }
+
+  .transcript-box {
+    font-family:'JetBrains Mono', monospace; font-size:12.5px; line-height:1.8;
+    color: var(--ink); white-space: pre-wrap;
+  }
+
+  .chat-wrap { display:flex; flex-direction:column; height:100%; }
+  .chat-log { flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .chat-bubble { padding:10px 14px; border-radius:12px; font-size:13.5px; max-width:85%; line-height:1.5; }
+  .chat-bubble.q { align-self:flex-end; background: var(--violet); color:white; border-bottom-right-radius:4px; }
+  .chat-bubble.a { align-self:flex-start; background: var(--bg); border:1px solid var(--line); border-bottom-left-radius:4px; }
+  .chat-input-row { display:flex; gap:8px; }
+  .chat-input-row input { margin-bottom:0; }
+
+  .section-block { margin-bottom:20px; }
+  .section-block h3 {
+    font-family:'JetBrains Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:.07em;
+    color: var(--violet); margin:0 0 8px 0; font-weight:600;
+  }
+  .section-block p { font-size:13.5px; line-height:1.65; margin:0; color: var(--ink); }
+  .summary-card {
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding:18px; margin-bottom:16px;
+  }
+
+  .toast {
+    position:fixed; bottom:24px; left:50%; transform: translateX(-50%);
+    background: var(--ink); color: var(--bg); padding:10px 18px; border-radius:10px;
+    font-size:13px; opacity:0; pointer-events:none; transition: opacity .2s ease, transform .2s ease; z-index:50;
+  }
+  .toast.show { opacity:1; transform: translateX(-50%) translateY(-6px); }
+  .toast.error { background: var(--danger); color:white; }
+
+  .hidden { display:none !important; }
+</style>
+</head>
+<body data-theme="light">
+
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 14V10C4 6.13 7.13 3 11 3H13C16.87 3 20 6.13 20 10V14" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M4 14C4 12.9 4.9 12 6 12C7.1 12 8 12.9 8 14V16C8 17.1 7.1 18 6 18C4.9 18 4 17.1 4 16V14Z" fill="white"/>
+        <path d="M16 14C16 12.9 16.9 12 18 12C19.1 12 20 12.9 20 14V16C20 17.1 19.1 18 18 18C16.9 18 16 17.1 16 16V14Z" fill="white"/>
+        <path d="M9 20H15" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="brand-name">Meeting<span>Notes</span>Bot</div>
+  </div>
+  <div class="topbar-right">
+    <span class="signed-in-as hidden" id="signedInAs"></span>
+    <button class="btn secondary small hidden" id="signOutBtn">Sign out</button>
+    <input id="apiBase" class="api-input" type="text" value="http://127.0.0.1:8000" title="API base URL" />
+    <span id="apiStatus" class="status-pill off"><span class="dot"></span>checking</span>
+    <button class="icon-btn" id="themeToggle" title="Toggle theme">🌙</button>
+  </div>
+</div>
+
+<div class="app-shell">
+
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+      <span class="eyebrow">Account</span>
+      <h2 id="authTitle">Sign in</h2>
+      <div class="tabs">
+        <div class="tab active" data-authtab="login">Login</div>
+        <div class="tab" data-authtab="register">Register</div>
+      </div>
+      <label>Email</label>
+      <input type="email" id="authEmail" placeholder="you@example.com" />
+      <label>Password</label>
+      <input type="password" id="authPassword" placeholder="••••••••" />
+      <button class="btn" id="authSubmit">Sign in</button>
+      <p class="muted" id="authState" style="margin-top:12px;"></p>
+    </div>
+  </div>
+
+  <div class="app-shell hidden" id="dashboard" style="flex:1;">
+
+    <div class="rail">
+      <div class="rail-header">
+        <h2>Meetings</h2>
+        <div class="search-row">
+          <input type="text" id="searchInput" placeholder="Search…" />
+          <button class="btn secondary small" id="searchBtn">Go</button>
+        </div>
+        <button class="btn secondary small" id="resetSearchBtn" style="width:100%;">Reset</button>
+      </div>
+      <div class="rail-list" id="meetingList">
+        <div class="empty-rail">No meetings yet.</div>
+      </div>
+      <div class="rail-footer">
+        <button class="btn small" id="toggleUploadBtn" style="width:100%;">+ New meeting</button>
+        <div class="upload-panel hidden" id="uploadPanel" style="margin-top:12px; padding:0;">
+          <div class="upload-tabs">
+            <div class="tab active" data-uploadtab="audio">Audio</div>
+            <div class="tab" data-uploadtab="transcript">Transcript</div>
+          </div>
+          <div id="audioPane">
+            <input type="file" id="audioFile" accept=".mp3,.wav" />
+          </div>
+          <div id="transcriptPane" class="hidden">
+            <input type="file" id="transcriptFile" accept=".txt,.docx,.pdf" />
+          </div>
+          <button class="btn small" id="uploadSubmit" style="width:100%;">Upload &amp; summarize</button>
+          <p class="muted" id="uploadState" style="margin-top:8px;"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="center-pane" id="centerPane">
+        <div class="placeholder-pane">
+          <div class="waveform"><span style="animation-delay:0s;height:30%"></span><span style="animation-delay:.15s;height:70%"></span><span style="animation-delay:.3s;height:45%"></span><span style="animation-delay:.45s;height:85%"></span><span style="animation-delay:.6s;height:55%"></span></div>
+          <p>Select a meeting to view its transcript</p>
+        </div>
+      </div>
+      <div class="right-pane" id="rightPane">
+        <div class="placeholder-pane">
+          <p>Summary will appear here</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  const state = { token: null, email: null, meetings: [], activeMeeting: null };
+
+  const el = (id) => document.getElementById(id);
+  const apiBaseInput = el('apiBase');
+  const apiStatus = el('apiStatus');
+
+  function apiUrl(path) { return apiBaseInput.value.replace(/\/$/, '') + path; }
+
+  function showToast(msg, isError) {
+    const t = el('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => { t.className = 'toast'; }, 3200);
+  }
+
+  async function checkHealth() {
+    try {
+      const res = await fetch(apiUrl('/health'));
+      apiStatus.className = res.ok ? 'status-pill ok' : 'status-pill off';
+      apiStatus.innerHTML = '<span class="dot"></span>' + (res.ok ? 'online' : 'offline');
+    } catch {
+      apiStatus.className = 'status-pill off';
+      apiStatus.innerHTML = '<span class="dot"></span>offline';
+    }
+  }
+  checkHealth();
+  apiBaseInput.addEventListener('change', checkHealth);
+
+  el('themeToggle').addEventListener('click', () => {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    el('themeToggle').textContent = isDark ? '🌙' : '☀️';
+  });
+
+  let authMode = 'login';
+  document.querySelectorAll('[data-authtab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('[data-authtab]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      authMode = tab.dataset.authtab;
+      el('authTitle').textContent = authMode === 'login' ? 'Sign in' : 'Create account';
+      el('authSubmit').textContent = authMode === 'login' ? 'Sign in' : 'Create account';
+    });
+  });
+
+  el('authSubmit').addEventListener('click', async () => {
+    const email = el('authEmail').value.trim();
+    const password = el('authPassword').value;
+    if (!email || !password) { showToast('Enter email and password', true); return; }
+
+    const path = authMode === 'login' ? '/auth/login' : '/auth/register';
+    try {
+      const res = await fetch(apiUrl(path), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Request failed');
+
+      state.token = data.access_token;
+      state.email = email;
+      enterDashboard();
+      showToast(authMode === 'login' ? 'Signed in' : 'Account created');
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  });
+
+  el('signOutBtn').addEventListener('click', () => {
+    state.token = null;
+    state.email = null;
+    state.meetings = [];
+    state.activeMeeting = null;
+    el('dashboard').classList.add('hidden');
+    el('authOverlay').classList.remove('hidden');
+    el('signedInAs').classList.add('hidden');
+    el('signOutBtn').classList.add('hidden');
+  });
+
+  function enterDashboard() {
+    el('authOverlay').classList.add('hidden');
+    el('dashboard').classList.remove('hidden');
+    el('signedInAs').textContent = state.email;
+    el('signedInAs').classList.remove('hidden');
+    el('signOutBtn').classList.remove('hidden');
+    loadMeetings();
+  }
+
+  function authHeaders(extra) {
+    return Object.assign({ 'Authorization': 'Bearer ' + state.token }, extra || {});
+  }
+
+  el('toggleUploadBtn').addEventListener('click', () => {
+    el('uploadPanel').classList.toggle('hidden');
+  });
+  document.querySelectorAll('[data-uploadtab]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('[data-uploadtab]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const mode = tab.dataset.uploadtab;
+      el('audioPane').classList.toggle('hidden', mode !== 'audio');
+      el('transcriptPane').classList.toggle('hidden', mode !== 'transcript');
+    });
+  });
+
+  el('uploadSubmit').addEventListener('click', async () => {
+    const audioMode = !el('audioPane').classList.contains('hidden');
+    const file = audioMode ? el('audioFile').files[0] : el('transcriptFile').files[0];
+    if (!file) { showToast('Choose a file first', true); return; }
+
+    const path = audioMode ? '/meetings/upload' : '/meetings/upload-transcript';
+    const formData = new FormData();
+    formData.append('file', file);
+
+    el('uploadState').textContent = 'Processing…';
+    el('uploadSubmit').disabled = true;
+
+    try {
+      const res = await fetch(apiUrl(path), { method: 'POST', headers: authHeaders(), body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Upload failed');
+      el('uploadState').textContent = 'Saved: ' + data.filename;
+      showToast('Meeting summarized');
+      await loadMeetings();
+      openMeeting(data.id);
+      el('uploadPanel').classList.add('hidden');
+    } catch (err) {
+      el('uploadState').textContent = '';
+      showToast(err.message, true);
+    } finally {
+      el('uploadSubmit').disabled = false;
+    }
+  });
+
+  async function loadMeetings(query) {
+    try {
+      const path = query ? '/meetings/search?q=' + encodeURIComponent(query) : '/meetings/';
+      const res = await fetch(apiUrl(path), { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Could not load meetings');
+      state.meetings = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      renderMeetingList();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  el('searchBtn').addEventListener('click', () => loadMeetings(el('searchInput').value.trim()));
+  el('resetSearchBtn').addEventListener('click', () => { el('searchInput').value = ''; loadMeetings(); });
+
+  function dateBucket(dateStr) {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const startOfDay = (dt) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+    const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays <= 7) return 'Last 7 days';
+    return 'Earlier';
+  }
+
+  function renderMeetingList() {
+    const container = el('meetingList');
+    if (!state.meetings.length) {
+      container.innerHTML = '<div class="empty-rail">No meetings found.</div>';
+      return;
+    }
+    const groups = {};
+    state.meetings.forEach(m => {
+      const bucket = dateBucket(m.created_at);
+      groups[bucket] = groups[bucket] || [];
+      groups[bucket].push(m);
+    });
+    const order = ['Today', 'Yesterday', 'Last 7 days', 'Earlier'];
+    container.innerHTML = '';
+    order.forEach(bucket => {
+      if (!groups[bucket]) return;
+      const label = document.createElement('div');
+      label.className = 'date-group-label';
+      label.textContent = bucket;
+      container.appendChild(label);
+      groups[bucket].forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'meeting-item' + (state.activeMeeting && state.activeMeeting.id === m.id ? ' active' : '');
+        const time = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        item.innerHTML = `<div style="flex:1;"><div class="m-name">${escapeHtml(m.filename)}</div><div class="m-date">${time}</div></div>`;
+        item.addEventListener('click', () => openMeeting(m.id));
+        container.appendChild(item);
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  let centerTab = 'transcript';
+
+  async function openMeeting(id) {
+    try {
+      const res = await fetch(apiUrl('/meetings/' + id), { headers: authHeaders() });
+      const m = await res.json();
+      if (!res.ok) throw new Error(m.detail || 'Could not load meeting');
+      state.activeMeeting = m;
+      centerTab = 'transcript';
+      renderMeetingList();
+      renderCenterPane();
+      renderRightPane();
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  function renderCenterPane() {
+    const m = state.activeMeeting;
+    const date = new Date(m.created_at);
+    const pane = el('centerPane');
+    pane.innerHTML = `
+      <div class="pane-header">
+        <div>
+          <div class="pane-title">${escapeHtml(m.filename)}</div>
+          <div class="pane-date">${date.toLocaleString()}</div>
+        </div>
+      </div>
+      <div class="center-tabs">
+        <div class="center-tab ${centerTab === 'transcript' ? 'active' : ''}" data-ctab="transcript">Transcript</div>
+        <div class="center-tab ${centerTab === 'chat' ? 'active' : ''}" data-ctab="chat">Ask a question</div>
+      </div>
+      <div class="center-body" id="centerBody"></div>
+    `;
+    pane.querySelectorAll('[data-ctab]').forEach(t => {
+      t.addEventListener('click', () => { centerTab = t.dataset.ctab; renderCenterPane(); });
+    });
+    renderCenterBody();
+  }
+
+  function renderCenterBody() {
+    const m = state.activeMeeting;
+    const body = el('centerBody');
+    if (centerTab === 'transcript') {
+      body.innerHTML = `<div class="transcript-box">${escapeHtml(m.transcript || 'No transcript available.')}</div>`;
+    } else {
+      body.innerHTML = `
+        <div class="chat-wrap">
+          <div class="chat-log" id="chatLog"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="e.g. What did we decide about the budget?" />
+            <button class="btn small" id="chatSend">Ask</button>
+          </div>
+        </div>
+      `;
+      el('chatSend').addEventListener('click', sendChat);
+      el('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+    }
+  }
+
+  async function sendChat() {
+    const input = el('chatInput');
+    const question = input.value.trim();
+    if (!question) return;
+    const log = el('chatLog');
+
+    const qBubble = document.createElement('div');
+    qBubble.className = 'chat-bubble q';
+    qBubble.textContent = question;
+    log.appendChild(qBubble);
+    input.value = '';
+    log.scrollTop = log.scrollHeight;
+
+    try {
+      const res = await fetch(apiUrl('/meetings/' + state.activeMeeting.id + '/chat'), {
+        method: 'POST',
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ question }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Chat failed');
+
+      const aBubble = document.createElement('div');
+      aBubble.className = 'chat-bubble a';
+      aBubble.textContent = data.answer;
+      log.appendChild(aBubble);
+      log.scrollTop = log.scrollHeight;
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+
+  function renderRightPane() {
+    const m = state.activeMeeting;
+    const pane = el('rightPane');
+    pane.innerHTML = `
+      <div class="summary-card">
+        <div class="section-block" style="margin-bottom:0;">
+          <h3>Summary</h3>
+          <p>${escapeHtml(m.summary || '—')}</p>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="section-block" style="margin-bottom:0;">
+          <h3>Action items</h3>
+          <p>${escapeHtml(m.action_items || '—')}</p>
+        </div>
+      </div>
+      <div class="summary-card">
+        <div class="section-block" style="margin-bottom:0;">
+          <h3>Key decisions</h3>
+          <p>${escapeHtml(m.key_decisions || '—')}</p>
+        </div>
+      </div>
+      <button class="btn secondary small" id="downloadPdfBtn" style="width:100%;">Download PDF</button>
+    `;
+    el('downloadPdfBtn').addEventListener('click', () => downloadPdf(m.id));
+  }
+
+  async function downloadPdf(meetingId) {
+    try {
+      const res = await fetch(apiUrl('/meetings/' + meetingId + '/pdf'), { headers: authHeaders() });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Download failed');
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'meeting_' + meetingId + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      showToast(err.message, true);
+    }
+  }
+})();
+</script>
+
+</body>
+</html>
