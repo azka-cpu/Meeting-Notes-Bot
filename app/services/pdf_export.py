@@ -27,7 +27,8 @@ def generate_meeting_pdf(meeting: Meeting) -> str:
     pdf.set_font("Arial", size=11)
     pdf.multi_cell(0, 8, meeting.key_decisions or "")
 
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    output_path = os.path.join(settings.UPLOAD_DIR, f"meeting_{meeting.id}.pdf")
+    upload_dir = "/tmp" if os.environ.get("VERCEL") else settings.UPLOAD_DIR
+    os.makedirs(upload_dir, exist_ok=True)
+    output_path = os.path.join(upload_dir, f"meeting_{meeting.id}.pdf")
     pdf.output(output_path)
     return output_path

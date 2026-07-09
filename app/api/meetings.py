@@ -25,8 +25,9 @@ def upload_meeting(
     if not file.filename.lower().endswith((".mp3", ".wav")):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file format")
 
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{uuid.uuid4()}_{file.filename}")
+    upload_dir = "/tmp" if os.environ.get("VERCEL") else settings.UPLOAD_DIR
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, f"{uuid.uuid4()}_{file.filename}")
 
     with open(file_path, "wb") as buffer:
         buffer.write(file.file.read())
@@ -57,9 +58,10 @@ def upload_transcript(
 ):
     if not file.filename.lower().endswith((".txt", ".docx", ".pdf")):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file format")
-    
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{uuid.uuid4()}_{file.filename}")
+
+    upload_dir = "/tmp" if os.environ.get("VERCEL") else settings.UPLOAD_DIR
+    os.makedirs(upload_dir, exist_ok=True)
+    file_path = os.path.join(upload_dir, f"{uuid.uuid4()}_{file.filename}")
     with open(file_path, "wb") as buffer:
         buffer.write(file.file.read())
     transcript = extract_text_from_file(file_path, file.filename)
