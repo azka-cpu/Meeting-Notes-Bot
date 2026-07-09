@@ -1,8 +1,6 @@
 import os
-
 import docx
 from pypdf import PdfReader
-
 
 def extract_text_from_file(file_path: str, filename: str) -> str:
     extension = os.path.splitext(filename)[1].lower()
@@ -19,5 +17,4 @@ def extract_text_from_file(file_path: str, filename: str) -> str:
         reader = PdfReader(file_path)
         text = "\n".join(page.extract_text() or "" for page in reader.pages)
         return text.strip()
-
     raise ValueError(f"Unsupported transcript file format: {extension}")

@@ -1,8 +1,6 @@
 import json
 from dataclasses import dataclass
-
 from groq import Groq
-
 from app.core.config import settings
 
 client = Groq(api_key=settings.GROQ_API_KEY)
@@ -12,14 +10,11 @@ SYSTEM_PROMPT = (
     "Respond only with a JSON object containing exactly these keys: "
     "summary, action_items, key_decisions."
 )
-
-
 @dataclass
 class SummaryResult:
     summary: str
     action_items: str
     key_decisions: str
-
 
 def summarize_transcript(transcript: str) -> SummaryResult:
     response = client.chat.completions.create(
@@ -30,21 +25,16 @@ def summarize_transcript(transcript: str) -> SummaryResult:
         ],
         response_format={"type": "json_object"},
     )
-
     raw_output = response.choices[0].message.content
-
     try:
         data = json.loads(raw_output)
     except json.JSONDecodeError:
         data = {"summary": raw_output, "action_items": "", "key_decisions": ""}
-
     return SummaryResult(
         summary=data.get("summary", ""),
         action_items=data.get("action_items", ""),
         key_decisions=data.get("key_decisions", ""),
     )
-
-
 def ask_about_meeting(transcript: str, question: str) -> str:
     response = client.chat.completions.create(
         model=settings.GROQ_MODEL,
