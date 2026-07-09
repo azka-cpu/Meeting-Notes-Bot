@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     UPLOAD_DIR: str = "uploads"
-    ALLOWED_ORIGINS: list[str] = ["*"]
+    ALLOWED_ORIGINS: list[str] = ["https://meeting-notes-bot-ui.vercel.app"]
 
     class Config:
         env_file = ".env"
